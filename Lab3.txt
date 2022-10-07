@@ -1,0 +1,118 @@
+SELECT workdays[1]
+FROM employee_table
+WHERE id_emp = 2; --Выяснить работает ли работник 2 во вторник
+
+SELECT *
+FROM employee_table
+WHERE workdays[5] = 1
+  and workdays[6] = 1
+  and workdays[7] = 1; -- выяснить, какие сотрудники работает с пятницы по воскресенье
+
+UPDATE employee_table
+SET workdays[1] = 0; -- установить всем выходной в понедельник
+
+SELECT * FROM employee_table WHERE workdays = '{0,0,0,0,1,1,1}';
+
+SELECT upper(emp_firstname || emp_lastname)
+from employee_table; -- соединить имя и фамилию сотрудников в одно поле и привести к верхнему регистру
+
+ALTER TYPE employee ADD VALUE 'new_value';-- внести новое значение в список должностей
+
+SELECT enum_range(null::employee);
+
+ALTER TABLE employee_table
+    ADD COLUMN IF NOT EXISTS vacation_start_date date; --добавить в таблицу дат начала отпуска сотрудника
+ALTER TABLE employee_table
+    ADD COLUMN IF NOT EXISTS vacation_duration int; --и его продолжительность
+
+UPDATE employee_table SET vacation_start_date = vacation_start_date + 25 WHERE id_emp = 3; -- для сотрудника с номером 3 сдвинуть срок отпуска на 14 дней вперед или назад
+UPDATE employee_table SET vacation_duration = vacation_duration + 14 WHERE id_emp = 3;  --или так
+
+SELECT * FROMemployee_table FOR UPDATE; --ДОДЕЛАТЬ!
+
+SELECT * employee_table FOR SHARE;
+
+ALTER TABLE employee_table ADD COLUMN  IF NOT EXISTS birth_date_2 int; --создать поле с датой рождения типа int
+
+ALTER TABLE employee_table ALTER COLUMN birth_date_2 TYPE DATE USING employee_table.birth_date_2::TEXT::DATE; ; --преобразовать его к типу "дата" без потери данных и обратно
+ALTER TABLE employee_table ALTER COLUMN birth_date_2 TYPE INTEGER USING to_char(birth_date_2, 'YYMMDD')::INTEGER; -- и обратно
+
+
+SELECT workdays[1]
+FROM employee_table
+WHERE id_emp = 2; --Выяснить работает ли работник 2 во вторник
+
+SELECT *
+FROM employee_table
+WHERE workdays[5] = 1
+  and workdays[6] = 1
+  and workdays[7] = 1; -- выяснить, какие сотрудники работает с пятницы по воскресенье
+
+UPDATE employee_table
+SET workdays[1] = 0; -- установить всем выходной в понедельник
+
+SELECT * FROM employee_table WHERE workdays = '{0,0,0,0,1,1,1}';
+
+SELECT upper(emp_firstname || emp_lastname)
+from employee_table; -- соединить имя и фамилию сотрудников в одно поле и привести к верхнему регистру
+
+ALTER TYPE employee ADD VALUE 'new_value';-- внести новое значение в список должностей
+
+SELECT enum_range(null::employee);
+
+ALTER TABLE employee_table
+    ADD COLUMN IF NOT EXISTS vacation_start_date date; --добавить в таблицу дат начала отпуска сотрудника
+ALTER TABLE employee_table
+    ADD COLUMN IF NOT EXISTS vacation_duration int; --и его продолжительность
+
+UPDATE employee_table SET vacation_start_date = vacation_start_date + 25 WHERE id_emp = 3; -- для сотрудника с номером 3 сдвинуть срок отпуска на 14 дней вперед или назад
+UPDATE employee_table SET vacation_duration = vacation_duration + 14 WHERE id_emp = 3;  --или так
+
+SELECT * FROMemployee_table FOR UPDATE; --ДОДЕЛАТЬ!
+
+SELECT * employee_table FOR SHARE;
+
+ALTER TABLE employee_table ADD COLUMN  IF NOT EXISTS birth_date_2 int; --создать поле с датой рождения типа int
+
+ALTER TABLE employee_table ALTER COLUMN birth_date_2 TYPE DATE USING employee_table.birth_date_2::TEXT::DATE; ; --преобразовать его к типу "дата" без потери данных и обратно
+ALTER TABLE employee_table ALTER COLUMN birth_date_2 TYPE INTEGER USING to_char(birth_date_2, 'YYMMDD')::INTEGER; -- и обратно
+
+
+CREATE OR REPLACE FUNCTION getEmployeeNameAndJob(id int) RETURNS record AS $$ --написать функцию, которая возвращает имя и должность по ID
+DECLARE data RECORD;
+BEGIN
+  SELECT emp_firstname || ' ' || emp_lastname, employee INTO data FROM employee_table WHERE id_emp = id;
+  RETURN data;
+END;
+$$ LANGUAGE plpgsql;
+
+SELECT getEmployeeNameAndJob(5);
+
+SELECT n.nspname AS test_db_2, --показать эту функцию
+       p.proname AS getEmployeeNameAndJob,
+       l.lanname AS plpgsql,
+       CASE WHEN l.lanname = 'internal' THEN p.prosrc
+            ELSE pg_get_functiondef(p.oid)
+            END AS definition,
+       pg_get_function_arguments(p.oid) AS function_arguments,
+       t.typname as return_type
+FROM pg_proc p
+LEFT JOIN pg_namespace n ON p.pronamespace = n.oid
+LEFT JOIN pg_language l ON p.prolang = l.oid
+LEFT JOIN pg_type t ON t.oid = p.prorettype
+WHERE n.nspname NOT IN ('pg_catalog', 'information_schema')
+ORDER BY test_db_2, getEmployeeNameAndJob;
+
+
+CREATE OR REPLACE FUNCTION getEmployeesBySalary(salaryFrom int, salaryTo int) RETURNS table (name text) AS $$ --написать функцию, которая возвращает имя и должность по ID
+BEGIN
+    RETURN QUERY
+  SELECT emp_firstname || ' ' || emp_lastname FROM employee_table WHERE salary BETWEEN salaryFrom AND salaryTo; --можно так же обычными логическими операторами пользоваться
+END;
+$$ LANGUAGE plpgsql;
+
+SELECT getEmployeesBySalary(1, 500);
+
+SELECT emp_firstname || ' ' || emp_lastname, salary FROM employee_table WHERE salary >= 100 AND salary <= 500;
+
+DROP FUNCTION getEmployeesBySalary(salaryFrom int, salaryTo int)
