@@ -59,13 +59,13 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-drop function findNearestAttraction(userLocation point);
-
 SELECT findNearestAttraction(point '(2.5, 1.0)');
 
 CREATE INDEX ON cities_attraction USING GIST(attraction_location); --выводить расстояние от пользователя до точки // использовать тип данных record? Надо делать в цикле ?
 
-CREATE FUNCTION get_near_attr(userLocation point) RETURNS RECORD AS $$
+
+--3
+CREATE FUNCTION getNearestAttraction(userLocation point) RETURNS RECORD AS $$
     DECLARE
         min INT = 1000000;
         tmpMin INT = 0;
@@ -86,17 +86,26 @@ CREATE FUNCTION get_near_attr(userLocation point) RETURNS RECORD AS $$
 
 $$ LANGUAGE plpgsql;
 
-SELECT get_near_attr('(15,30)');
+SELECT getNearestAttraction('(100500,30)');
 
+--4
 
+CREATE FUNCTION getParallelRoadsAndItsNames () RETURNS TABLE (road_name varchar) AS $$
+    BEGIN
+         LOOP
+             SELECT cities_roads.road, cities_roads.road_name, LEAD(cities_roads.road), LEAD(cities_roads.road_name) FROM cities_roads GROUP BY cities_roads.road, cities_roads.road_name;
+         END LOOP;
+    END;
+$$ LANGUAGE plpgsql;
 
+--можно пользоваться PostGis
 
 --Архивирование
 --1. .\pg_dump.exe -U postgres -Ft -f "[path\filename.extension]" "[db_name]"
 --2. .\pg_restore.exe -U postgres -d "[db_name]" "[path\filename.extension]"
 --3. .\pg_dump.exe -U postgres -d "[db_name] "-t "[table_name]" -Fc -f "[path\filename.extension]"
---4. .\pg_restore.exe -U postgres -d "[db_name]" -t "[table_name]" -Fc "[path\filename.extension]"
+--4. .\pg_restore.exe -U postgres -d "[db_name]" -t "[table_name]" -Fc "[path\filename.extension]" --пробовать через psql
 --5. .\pg_dump.exe -U postgres -a -Ft -f "[path\filename.extension]" "[db_name]"
 --6. .\pg_dump.exe -U postgres -s "[db_name]" > "[path\filename.extension]"
---7. .\pg_dump.exe -U postgres "[db_name]" > "[path\filename.extension]"
+--7. .\pg_dump.exe -U postgres "[db_name]" > "[path\filename.extension]" -- переделать это и 8 пункт
 --8. .\psql.exe -U postgres -d "[db_name]"  -f "[path\filename.extension]" -- почему-то отказывается работать
