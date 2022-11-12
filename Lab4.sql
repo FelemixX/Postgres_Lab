@@ -88,15 +88,66 @@ $$ LANGUAGE plpgsql;
 
 SELECT getNearestAttraction('(100500,30)');
 
---4
+--4 найти параллельные дороги
 
-CREATE FUNCTION getParallelRoadsAndItsNames () RETURNS TABLE (road_name varchar) AS $$
+DROP FUNCTION get_parallel_roads;
+
+CREATE FUNCTION get_parallel_roads()
+    RETURNS TABLE ( road1_name varchar, road1_len  int,road2_name varchar, road2_len  int )AS $$
+    DECLARE
+        _row RECORD;
+        _row2 RECORD;
     BEGIN
-         LOOP
-             SELECT cities_roads.road, cities_roads.road_name, LEAD(cities_roads.road), LEAD(cities_roads.road_name) FROM cities_roads GROUP BY cities_roads.road, cities_roads.road_name;
-         END LOOP;
+        FOR _row IN SELECT * FROM cities_roads
+            LOOP
+                FOR _row2 IN SELECT * FROM cities_roads
+                    LOOP
+                        IF NOT (_row.road = _row2.road) THEN
+                            IF (_row.road ?|| _row2.road) THEN
+                                RETURN QUERY SELECT _row.road_name,(SELECT @-@ _row.road)::int, _row2.road_name, (SELECT @-@ _row2.road)::int;
+                            END IF;
+                        END IF;
+                    END LOOP;
+            END LOOP;
+    END;
+$$
+LANGUAGE plpgsql;
+
+SELECT get_parallel_roads();
+
+
+-- CREATE FUNCTION getParallelRoadsAndItsNames () RETURNS TABLE (road_name varchar) AS $$
+--     BEGIN
+--          LOOP
+--              SELECT cities_roads.road, cities_roads.road_name, LEAD(cities_roads.road), LEAD(cities_roads.road_name) FROM cities_roads GROUP BY cities_roads.road, cities_roads.road_name;
+--          END LOOP;
+--     END;
+-- $$ LANGUAGE plpgsql;
+
+
+-- SELECT cities_roads.road, cities_roads.road_name FROM cities_roads a1 where
+
+
+--5 Пусть в заданной точке на карте случилась авария, выведите список достопримечательностей, которые попадут в зону опастности.
+-- Радиус зоны задайте сами. Найти самый большой по площади торговый центр из ближайших к заданной дороге.
+
+
+CREATE OR REPLACE FUNCTION getAttractionsNearCatastrophy(danger_zone_radius circle) RETURNS TABLE (attraction_location point, attraction_name varchar) AS $$
+    BEGIN
+        RETURN QUERY
+        SELECT cities_attraction.attraction_location, cities_attraction.attraction_name FROM cities_attraction WHERE danger_zone_radius @> cities_attraction.attraction_location;
     END;
 $$ LANGUAGE plpgsql;
+
+SELECT getAttractionsNearCatastrophy('((15,200),100500)');
+
+--Найти самый большой по площади торговаый центр из ближайших к заданной дороге
+SELECT cities_malls.mall_name, cities_malls.zone_plain,
+       '[(100,500), (400,300)]'::lseg <-> cities_malls.zone_plain,
+       area(zone_plain)
+FROM cities_malls
+WHERE 2 > '[(100,500), (400,300)]'::lseg <-> cities_malls.zone_plain
+
 
 --можно пользоваться PostGis
 
