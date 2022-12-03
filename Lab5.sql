@@ -70,4 +70,6 @@ $$ LANGUAGE plpgsql;
 
 SELECT removeRedundantSymbols();
 
---можно просто убирать цифры из строк и заносить их обратно 
+--можно просто убирать цифры из строк и заносить их обратно
+
+SELECT phone_number, regexp_replace(phone_number, '(\+{0,1}\d{1})(\d{3})(\d{3})(\d{2})(\d{2})', '+7 (\2) \3-\4-\5') FROM phones WHERE phone_number ~ '^\+{0,1}\d{1}\d{10}';
