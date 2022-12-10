@@ -1,0 +1,29 @@
+create table full_text_search
+(
+    id                    serial
+        primary key,
+    text_content          text not null,
+    tsvector_text_content tsvector
+);
+
+alter table full_text_search
+    owner to postgres;
+
+create function update_ts_vector_trigger() returns trigger
+    language plpgsql
+as
+$$
+    BEGIN
+        NEW.tsvector_text_content := to_tsvector('english', NEW.text_content);
+        RETURN NEW;
+    END;
+$$;
+
+alter function update_ts_vector_trigger() owner to postgres;
+
+create trigger update_ts_vector_trigger
+    before insert or update
+    on full_text_search
+    for each row
+execute procedure update_ts_vector_trigger();
+
